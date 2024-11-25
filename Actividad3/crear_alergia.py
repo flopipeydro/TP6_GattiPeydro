@@ -7,68 +7,69 @@ from fhir.resources.annotation import Annotation
 from fhir.resources.allergyintolerance import AllergyIntoleranceReaction
 
 def create_allergy(patient_id):
-    url = f"{BASE_URL}/AllergyIntolerance"
-    allergy_data = {
-        "resourceType": "AllergyIntolerance",
-        "identifier": [{"system": "http://example.com/identifier", "value": "A12345"}],
-        "patient": {"reference": f"Patient/{patient_id}"},
-        "substance": {"coding": [{"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": "1840032", "display": "Penicilina"}]},
-        "status": "active",
-        "criticality": "high", #reaaccion grave
-        "category": "medication",
-        "reaction": [
-            {
-                "substance": {
-                    "coding": [
-                        {
-                            "system": "http://www.nlm.nih.gov/research/umls/rxnorm",
-                            "code": "1840032",
-                            "display": "Penicilina"
-                        }
-                    ]
-                },
-                "manifestation": [
-                    {
-                        "coding": [
-                            {
-                                "system": "http://snomed.info/sct",
-                                "code": "77386006",  # Código SNOMED para caida de presion arterial
-                                "display": "Shock disorder or hypotension"
-                            }
-                        ]
-                    },
-                    {
-                        "coding": [
-                            {
-                                "system": "http://snomed.info/sct",
-                                "code": "267036007",  # Código SNOMED para dificultad para respirar
-                                "display": "Dyspnoea"
-                            }
-                        ]
-                    }
-                ],
-                "severity": "severe", 
-                "exposureRoute": {
-                    "coding": [
-                        {
-                            "system": "http://snomed.info/sct",
-                            "code": "272741003",  # Código para ruta de exposición intravenosa
-                            "display": "Intravenous"
-                        }
-                    ]
-                },
-                "note": "El paciente presenta una reacción severa de aumento de presion arterial y dificultad para respirar tras el consumo de penicilina."
-            }
-        ],
-        "note": [
-            {
-                "text": "El paciente tiene un historial conocido de reacciones alérgicas graves a medicamentos, especialmente a la penicilina."
-            }
-        ]
-      }
-    response = requests.post(url, headers={"Content-Type": "application/json"}, json=allergy_data)
+    note_annotation = Annotation(text=note)
+    substance = CodeableConcept(
+        coding=[{
+            "code": substance_code,
+            "display": substance_display,
+            "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+        }]
+    )
+
+    
+    reaction = AllergyIntoleranceReaction(
+        substance=CodeableConcept(
+            coding=[{
+                "code": substance_code,
+                "display": substance_display,
+                "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+            }]
+        ),
+        manifestation=[{
+            "coding": [{
+                "system": "http://snomed.info/sct",
+                "code": manifestation_code,
+                "display": manifestation_display
+            }]
+        }],
+        severity=severity,
+        note=[note_annotation]  
+    )
+
+   
+    allergy_intolerance = AllergyIntolerance(
+        resourceType="AllergyIntolerance",
+        patient=Reference(reference=f"Patient/{patient_id}"),
+        reaction=[reaction],  
+        category=[category],  
+        criticality=criticality
+    )
+
+    
+    allergy_dict = allergy_intolerance.dict(by_alias=True)  
+    print("JSON generado para la alergia:")
+    print(json.dumps(allergy_dict, indent=4))  
+
+    return allergy_dict
+
+
+def send_allergy_intolerance_to_fhir(allergy_dict):
+    url = "http://hapi.fhir.org/baseR4/AllergyIntolerance"
+    headers = {"Content-Type": "application/fhir+json"}
+
+    
+    response = requests.post(url, headers=headers, json=allergy_dict)
+
+   
     if response.status_code == 201:
-        print("Alergia creada con éxito.")
-        print(json.dumps(response.json(), indent=2))
+        print("Alergia creada exitosamente.")
     else:
-        print("Error al crear la alergia:", response.text)
+        
+        print(f"Error al crear la alergia: {response.status_code}")
+        print("Detalles del error:")
+        print(response.text)  
+        try:
+            print("Respuesta JSON del error:")
+            print(response.json())  
+        except ValueError:
+            print("La respuesta no contiene un JSON válido.")
