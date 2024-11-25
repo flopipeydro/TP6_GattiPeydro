@@ -1,4 +1,6 @@
 import requests
+# Endpoint base del servidor FHIR
+BASE_URL = "https://launch.smarthealthit.org/v/r4/fhir"
 def search_patient_manually(document_id, system_url):
     search_url = f"{BASE_URL}/Patient"
     response = requests.get(search_url, headers={"Content-Type": "application/json"})
