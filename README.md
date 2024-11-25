@@ -28,6 +28,6 @@ Dentro de la carpeta Actividad3 se encuentra el repositorio correspondiente al t
 - *ejemplo_paciente.py* Validación de la alergia con el id del paciente.
 
 Ademas podemos observar dentro del repositorio tres archivos mas:
-- *Patient.py* Creación del recurso paciente con algunos parámetros.
-- *Base* Lectura y escritura de recursos en el servidor público de HAPI FHIR.
-- *Workflow* Desde acá se corre el código. 
+- *patient.py* Creación del recurso paciente con algunos parámetros.
+- *base.py* Lectura y escritura de recursos en el servidor público de HAPI FHIR.
+- *workflow.py* Desde acá se corre el código. 
