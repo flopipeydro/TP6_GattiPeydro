@@ -1,69 +1,61 @@
-import json
 import requests
-from fhir.resources.allergyintolerance import AllergyIntolerance
-from fhir.resources.codeableconcept import CodeableConcept
-from fhir.resources.codeablereference import CodeableReference
-from fhir.resources.reference import Reference
-from fhir.resources.annotation import Annotation
-from fhir.resources.allergyintolerance import AllergyIntoleranceReaction
 
 BASE_URL = "https://launch.smarthealthit.org/v/r4/fhir"
 
-def create_allergy_intolerance_resource(patient_id, substance_code, substance_display, criticality, category, manifestation_code, manifestation_display, severity, note):
-    note_annotation = Annotation(text=note)
-    substance = CodeableConcept(
-        coding=[{
-            "code": substance_code,
-            "display": substance_display,
-            "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
-        }]
-    )
+def get_allergies_by_patient_id(patient_id):
+    url = f"{BASE_URL}/AllergyIntolerance?patient={patient_id}"
+    response = requests.get(url, headers={"Accept": "application/fhir+json"})
 
-    manifestation = [
-        CodeableReference(
-            concept=CodeableConcept(
-                coding=[{
-                    "system": "http://snomed.info/sct",
-                    "code": manifestation_code,
-                    "display": manifestation_display
-                }]
-            )
-        )
-    ]
+    if response.status_code == 200:
+        allergies = response.json().get('entry', [])
 
-    reaction = AllergyIntoleranceReaction(
-        substance=substance,
-        manifestation=manifestation,
-        severity=severity,
-        note=[note_annotation]
-    )
+        if allergies:
+            print(f"Alergias encontradas para el paciente con ID {patient_id}:")
+            for allergy_entry in allergies:
+                allergy = allergy_entry['resource']
 
-    allergy_intolerance = AllergyIntolerance(
-        resourceType="AllergyIntolerance",
-        patient=Reference(reference=f"Patient/{patient_id}"),
-        reaction=[reaction],
-        category=[category],
-        criticality=criticality
-    )
+                print(f"ID de la alergia: {allergy.get('id', 'No ID disponible')}")
 
-    allergy_dict = allergy_intolerance.dict(by_alias=True)
-    print("JSON generado para la alergia:")
-    print(json.dumps(allergy_dict, indent=4))
-    return allergy_dict
+                if 'reaction' in allergy and len(allergy['reaction']) > 0:
+                    substance = allergy['reaction'][0].get('substance', {})
+                    if substance and 'coding' in substance:
+                        substance_display = substance['coding'][0].get('display', 'No disponible')
+                        print(f"Sustancia: {substance_display}")
+                    else:
+                        print("Sustancia: No disponible")
+                else:
+                    print("Sustancia: No disponible")
 
-def send_allergy_intolerance_to_fhir(allergy_dict):
-    url = f"{BASE_URL}/AllergyIntolerance"
-    headers = {"Content-Type": "application/fhir+json"}
-    response = requests.post(url, headers=headers, json=allergy_dict)
+                if 'reaction' in allergy and len(allergy['reaction']) > 0:
+                    severity = allergy['reaction'][0].get('severity', 'No disponible')
+                    print(f"Severidad: {severity}")
 
-    if response.status_code == 201:
-        print("Alergia creada exitosamente.")
+                    manifestation = allergy['reaction'][0].get('manifestation', [{}])
+                    if manifestation and 'coding' in manifestation[0]:
+                        manifestation_display = manifestation[0]['coding'][0].get('display', 'No disponible')
+                        print(f"Reacción: {manifestation_display}")
+                    else:
+                        print("Reacción: No disponible")
+                else:
+                    print("Severidad o Reacción: No disponible")
+
+                category = allergy.get('category', 'No disponible')
+                print(f"Categoría: {category}")
+
+                # Mostrar las notas
+                if 'reaction' in allergy and len(allergy['reaction']) > 0:
+                    reaction = allergy['reaction'][0]
+                    if 'note' in reaction:
+                        for note in reaction['note']:
+                            print(f"Nota: {note.get('text', 'No disponible')}")
+                    else:
+                        print("Nota: No disponible")
+                else:
+                    print("Nota: No disponible")
+
+                print("-------------------------------")
+        else:
+            print(f"No se encontraron alergias para el paciente con ID {patient_id}.")
     else:
-        print(f"Error al crear la alergia: {response.status_code}")
-        print("Detalles del error:")
-        print(response.text)
-        try:
-            print("Respuesta JSON del error:")
-            print(response.json())
-        except ValueError:
-            print("La respuesta no contiene un JSON válido.")
+        print(f"Error al buscar alergias: {response.status_code}")
+        print(response.json())
