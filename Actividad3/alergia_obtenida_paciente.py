@@ -7,6 +7,8 @@ from fhir.resources.reference import Reference
 from fhir.resources.annotation import Annotation
 from fhir.resources.allergyintolerance import AllergyIntoleranceReaction
 
+BASE_URL = "https://launch.smarthealthit.org/v/r4/fhir"
+
 def create_allergy_intolerance_resource(patient_id, substance_code, substance_display, criticality, category, manifestation_code, manifestation_display, severity, note):
     note_annotation = Annotation(text=note)
     substance = CodeableConcept(
